@@ -17,7 +17,12 @@ module CPU
     wire[31:0] four;
     wire pc_write;
     wire[31:0] IF_instruction;
+
     //ID stage
+    wire IF_Flush;
+    wire IF_Flush_by_predictor;
+    wire IF_Flush_by_ALU;
+    assign IF_Flush = IF_Flush_by_ALU | IF_Flush_by_predictor;
     wire[31:0] ID_instruction;
     wire[2:0] ID_ALUOp;
     wire ID_ALUSrc;
@@ -28,15 +33,16 @@ module CPU
     wire[31:0] ID_rs1data;
     wire[31:0] ID_rs2data;
     wire[31:0] ID_Imm;
+    wire ID_predict;
+    wire ID_Branch_Control;
     wire NoOp;
     wire Stall;
-    wire Branch_Control;
-    wire Compare;
-    wire Flush;
     wire[31:0] ID_pc;
     wire[31:0] Branch_pc;
     wire[31:0] ID_Imm_2; //ID_Imm * 2
+
     //EX Stage
+    wire ID_Flush;
     wire[31:0] EX_instruction;
     wire[2:0] EX_ALUOp;
     wire EX_ALUSrc;
@@ -55,6 +61,10 @@ module CPU
     wire[31:0] ALUsrcdata1;
     wire[31:0] ALUsrcdata2;
     wire[31:0] EX_ALUresult;
+    wire EX_Zero;
+    wire EX_predict;
+    wire EX_Branch_Control;
+
     //MEM stage
     wire[31:0] MEM_ALUresult;
     wire[31:0] MEM_memwritedata;
@@ -64,6 +74,7 @@ module CPU
     wire MEM_RegWrite;
     wire MEM_MemtoReg;
     wire[31:0] MEM_memreaddata;
+
     //WB stage
     wire[31:0] WB_memreaddata;
     wire[31:0] WB_ALUresult;
@@ -105,7 +116,7 @@ module CPU
         .rst_i(rst_i),
         .Op_i(IF_instruction),
         .Stall_i(Stall),
-        .Flush_i(Flush),
+        .Flush_i(IF_Flush),
         .pc_i(IF_pc),
         .Op_o(ID_instruction),
         .pc_o(ID_pc)
@@ -145,16 +156,19 @@ module CPU
         .RS2data_o(ID_rs2data) 
     );
 
-    IsEqual ISEqual(
-        .data1_i(ID_rs1data),
-        .data2_i(ID_rs2data),
-        .result_o(Compare)
+    branch_predictor branch_predictor
+    (
+        .clk_i(clk_i), 
+        .rst_i(rst_i),
+        .update_i(EX_Branch_Control),
+        .result_i(EX_Zero),
+        .predict_o(ID_predict)
     );
 
     AndGate AndGate(
         .input1_i(Branch_Control),
-        .input2_i(Compare),
-        .output_o(Flush)
+        .input2_i(ID_predict),
+        .output_o(IF_Flush_by_predictor)
     );
 
     ImmGen ImmGen(
@@ -176,6 +190,7 @@ module CPU
     IDEXRegisters IDEXRegisters(
         .clk_i(clk_i),
         .rst_i(rst_i),
+        .Flush_i(ID_Flush)
         .RegWrite_i(ID_RegWrite),
         .MemtoReg_i(ID_MemtoReg),
         .MemRead_i(ID_MemRead),
@@ -186,6 +201,8 @@ module CPU
         .RS2data_i(ID_rs2data),
         .Imm_i(ID_Imm),
         .Op_i(ID_instruction),
+        .Branch_i(ID_Branch_Control),
+        .Predict_i(ID_predict),
         .ALUOp_o(EX_ALUOp),
         .ALUSrc_o(EX_ALUSrc),
         .RegWrite_o(EX_RegWrite),
@@ -195,7 +212,9 @@ module CPU
         .RS1data_o(EX_rs1data),
         .RS2data_o(EX_rs2data),
         .Imm_o(EX_Imm),
-        .Op_o(EX_instruction)
+        .Op_o(EX_instruction),
+        .Branch_o(EX_Branch_Control),
+        .Predict_o(EX_predict)
     );
 
     ForwardingUnit ForwardingUnit(
@@ -243,7 +262,17 @@ module CPU
         .data1_i(ALUsrcdata1),
         .data2_i(ALUsrcdata2),
         .ALUCtrl_i(EX_ALUOp),
-        .data_o(EX_ALUresult)
+        .data_o(EX_ALUresult),
+        .Zero_o(EX_Zero)
+    );
+
+    flush_decider flush_decider
+    (
+        .zero_i(EX_Zero),
+        .predict_i(EX_predict),
+        .branch_i(EX_Branch_Control),
+        .IF_flush_o(IF_Flush_by_ALU),
+        .ID_flush_o(ID_Flush)
     );
 
     EXMEMRegisters EXMEMRegisters(

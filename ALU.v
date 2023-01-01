@@ -36,7 +36,7 @@ module ALU
             `SRA: data_reg = data1_i >>> data2_i;
         endcase
         if (ALUCtrl_i == `SUB) begin
-            if (data1_i-data2_i == 0) begin
+            if (data1_i - data2_i == 0) begin
                 Zero_reg <= 1;
             end
             else begin

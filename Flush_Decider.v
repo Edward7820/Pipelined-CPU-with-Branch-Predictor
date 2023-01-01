@@ -20,10 +20,26 @@ module flush_decider
     assign ID_flush_o = ID_flush_reg;
 
     if (branch_i) begin
-        if (zero_i and predict_i) begin
-            ID_flush_reg <= 1'b1;
+        if (zero_i==1 and predict_i==1) begin
+            ID_flush_reg <= 1'b1; //don't care
             IF_flush_reg <= 1'b0;
         end
+        else if (zero_i==1 and predict_i==0) begin
+            ID_flush_reg <= 1'b1;
+            IF_flush_reg <= 1'b1;
+        end
+        else if (zero_i==0 and predict_i==1) begin
+            ID_flush_reg <= 1'b1; //don't care
+            IF_flush_reg <= 1'b1;
+        end
+        else if (zero_i==0 and predict_i==0) begin
+            ID_flush_reg <= 1'b0;
+            IF_flush_reg <= 1'b0;
+        end
+    end
+    else begin
+        ID_flush_reg <= 1'b0;
+        IF_flush_reg <= 1'b0;
     end
 
 endmodule
