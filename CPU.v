@@ -143,7 +143,7 @@ module CPU
         .MemtoReg_o(ID_MemtoReg),
         .MemRead_o(ID_MemRead),
         .MemWrite_o(ID_MemWrite),
-        .Branch_o(Branch_Control)
+        .Branch_o(ID_Branch_Control)
     );
 
     HazardDetectionUnit HazardDetectionUnit(
@@ -178,7 +178,7 @@ module CPU
     );
 
     AndGate AndGate(
-        .input1_i(Branch_Control),
+        .input1_i(ID_Branch_Control),
         .input2_i(ID_predict),
         .output_o(IF_Flush_by_predictor)
     );

@@ -26,10 +26,12 @@ module IFIDRegisters
     always@(posedge clk_i or posedge rst_i) begin
         if (rst_i) begin
             Op_reg <= {32{1'b0}};
+            pc_reg <= {32{1'b0}};
         end
         else if (Stall_i == 0) begin
             if (Flush_i) begin
                 Op_reg <= {32{1'b0}};
+                pc_reg <= {32{1'b0}};
             end
             else begin
                 Op_reg <= Op_i;
