@@ -76,8 +76,8 @@ always@(posedge Clk) begin
     // print PC
     // DO NOT CHANGE THE OUTPUT FORMAT
     $fdisplay(outfile, "cycle = %6d, PC = %6d, ", counter, CPU.PC.pc_o);
-    $fdisplay(outfile, "Predict = %6d, IFID_Flush = %6d", CPU.branch_predictor.predict_o, CPU.IF_ID.flush_i);
-    if (CPU.ID_EX.Branch_o == 1'b1)
+    $fdisplay(outfile, "Predict = %6d, IFID_Flush = %6d", CPU.branch_predictor.predict_o, CPU.IFIDRegisters.Flush_i);
+    if (CPU.IDEXRegisters.Branch_o == 1'b1)
         $fdisplay(outfile, "ALU_out = %6d", CPU.ALU.data_o);
     
     // print Registers

@@ -133,7 +133,7 @@ module IDEXRegisters
             Imm_reg <= Imm_i;
             Op_reg <= Op_i;
             Branch_reg <= Branch_i;
-            predict_reg <= Predict_i;
+            Predict_reg <= Predict_i;
             PC_reg <= PC_i;
         end
     end

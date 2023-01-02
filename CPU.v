@@ -2,19 +2,21 @@ module CPU
 (
     clk_i,
     rst_i,
-    start_i
 );
 
     // Ports
     input clk_i;
     input rst_i;
-    input start_i;
+
+    //global wire
+    wire[31:0] four;
+    assign four = 32'd4;
 
     //IF stage
-    wire[31:0] next_pc;
-    wire[31:0] pc_plus_four;
+    wire[31:0] IF_next_pc;
+    wire[31:0] IF_next_pc_without_rolling_back;
+    wire[31:0] IF_pc_plus_four;
     wire[31:0] IF_pc;
-    wire[31:0] four;
     wire pc_write;
     wire[31:0] IF_instruction;
 
@@ -66,7 +68,7 @@ module CPU
     wire EX_predict;
     wire EX_Branch_Control;
     wire[31:0] EX_pc;
-    wire[31:0] EX_Branch_pc;
+    wire[31:0] EX_next_pc;
 
     //MEM stage
     wire[31:0] MEM_ALUresult;
@@ -87,27 +89,32 @@ module CPU
     wire[31:0] WB_writedata;
 
     //IF stage
-    MUX2 Select_pc_source(
-        .data1_i(pc_plus_four),
-        .data2_i(Branch_pc),
-        .select_i(Flush),
-        .data_o(next_pc)
+    MUX2 Select_pc_source1(
+        .data1_i(IF_pc_plus_four),
+        .data2_i(ID_Branch_pc),
+        .select_i(IF_Flush_by_predictor),
+        .data_o(IF_next_pc_without_rolling_back)
     );
 
-    assign four = 32'd4;
+    MUX2 Select_pc_source2(
+        .data1_i(IF_next_pc_without_rolling_back),
+        .data2_i(EX_next_pc),
+        .select_i(IF_Flush_by_ALU),
+        .data_o(IF_next_pc)
+    );
+
     PC PC(
         .clk_i(clk_i),
         .rst_i(rst_i),
-        .start_i(start_i),
         .PCWrite_i(pc_write),
-        .pc_i(next_pc),
+        .pc_i(IF_next_pc),
         .pc_o(IF_pc)
     );
 
-    Adder Add_PC(
+    Adder IF_Add_PC(
         .data1_in(IF_pc),
         .data2_in(four),
-        .data_o(pc_plus_four)
+        .data_o(IF_pc_plus_four)
     );
 
     Instruction_Memory Instruction_Memory(
@@ -196,7 +203,7 @@ module CPU
     IDEXRegisters IDEXRegisters(
         .clk_i(clk_i),
         .rst_i(rst_i),
-        .Flush_i(ID_Flush)
+        .Flush_i(ID_Flush),
         .RegWrite_i(ID_RegWrite),
         .MemtoReg_i(ID_MemtoReg),
         .MemRead_i(ID_MemRead),
@@ -230,10 +237,11 @@ module CPU
         .data_o(EX_Imm_2)
     );
 
-    Adder EX_Calculate_Branch_pc(
-        .data1_in(EX_Imm_2),
-        .data2_in(EX_pc),
-        .data_o(EX_Branch_pc)
+    EX_generate_next_pc EX_generate_next_pc(
+        .pc_i(EX_pc),
+        .imm_i(EX_Imm_2),
+        .zero_i(EX_Zero),
+        .pc_o(EX_next_pc)
     );
 
     ForwardingUnit ForwardingUnit(
