@@ -21,7 +21,7 @@ module ALU
     output[31:0] data_o;
     output Zero_o;
 
-    reg[31:0] data_reg;
+    reg signed[31:0] data_reg;
     reg Zero_reg;
 
     always@(*)
