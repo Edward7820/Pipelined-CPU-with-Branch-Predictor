@@ -38,7 +38,7 @@ module CPU
     wire NoOp;
     wire Stall;
     wire[31:0] ID_pc;
-    wire[31:0] Branch_pc;
+    wire[31:0] ID_Branch_pc;
     wire[31:0] ID_Imm_2; //ID_Imm * 2
 
     //EX Stage
@@ -53,6 +53,7 @@ module CPU
     wire[31:0] EX_rs1data;
     wire[31:0] EX_rs2data;
     wire[31:0] EX_Imm;
+    wire[31:0] EX_Imm_2;
     wire[1:0] ForwardA;
     wire[1:0] ForwardB;
     wire[31:0] srcdata1; //after forwarding
@@ -64,6 +65,8 @@ module CPU
     wire EX_Zero;
     wire EX_predict;
     wire EX_Branch_Control;
+    wire[31:0] EX_pc;
+    wire[31:0] EX_Branch_pc;
 
     //MEM stage
     wire[31:0] MEM_ALUresult;
@@ -83,6 +86,7 @@ module CPU
     wire WB_MemtoReg;
     wire[31:0] WB_writedata;
 
+    //IF stage
     MUX2 Select_pc_source(
         .data1_i(pc_plus_four),
         .data2_i(Branch_pc),
@@ -111,6 +115,7 @@ module CPU
         .instr_o(IF_instruction)
     );
 
+    //ID stage
     IFIDRegisters IFIDRegisters(
         .clk_i(clk_i),
         .rst_i(rst_i),
@@ -176,17 +181,18 @@ module CPU
         .Imm_o(ID_Imm)
     );
 
-    LeftShift LeftShift(
+    LeftShift ID_LeftShift(
         .data_i(ID_Imm),
         .data_o(ID_Imm_2)
     );
 
-    Adder Calculate_Branch_pc(
+    Adder ID_Calculate_Branch_pc(
         .data1_in(ID_Imm_2),
         .data2_in(ID_pc),
-        .data_o(Branch_pc)
+        .data_o(ID_Branch_pc)
     );
 
+    //EX_stage
     IDEXRegisters IDEXRegisters(
         .clk_i(clk_i),
         .rst_i(rst_i),
@@ -203,6 +209,7 @@ module CPU
         .Op_i(ID_instruction),
         .Branch_i(ID_Branch_Control),
         .Predict_i(ID_predict),
+        .PC_i(ID_pc),
         .ALUOp_o(EX_ALUOp),
         .ALUSrc_o(EX_ALUSrc),
         .RegWrite_o(EX_RegWrite),
@@ -214,7 +221,19 @@ module CPU
         .Imm_o(EX_Imm),
         .Op_o(EX_instruction),
         .Branch_o(EX_Branch_Control),
-        .Predict_o(EX_predict)
+        .Predict_o(EX_predict),
+        .PC_o(EX_pc)
+    );
+
+    LeftShift EX_LeftShift(
+        .data_i(EX_Imm),
+        .data_o(EX_Imm_2)
+    );
+
+    Adder EX_Calculate_Branch_pc(
+        .data1_in(EX_Imm_2),
+        .data2_in(EX_pc),
+        .data_o(EX_Branch_pc)
     );
 
     ForwardingUnit ForwardingUnit(
@@ -230,6 +249,7 @@ module CPU
 
     wire[31:0] tmp;
     assign tmp = 32'd0;
+
     MUX4 MUXA(
         .data1_i(EX_rs1data),
         .data2_i(WB_writedata),
@@ -275,6 +295,7 @@ module CPU
         .ID_flush_o(ID_Flush)
     );
 
+    //MEM stage
     EXMEMRegisters EXMEMRegisters(
         .clk_i(clk_i),
         .rst_i(rst_i),
@@ -303,6 +324,7 @@ module CPU
         .data_o(MEM_memreaddata)
     );
 
+    //WB stage
     MEMWBRegisters MEMWBRegisters(
         .clk_i(clk_i),
         .rst_i(rst_i),

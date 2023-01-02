@@ -15,6 +15,7 @@ module IDEXRegisters
     Op_i,
     Branch_i,
     Predict_i,
+    PC_i,
     ALUOp_o,
     ALUSrc_o,
     RegWrite_o,
@@ -26,7 +27,8 @@ module IDEXRegisters
     Imm_o,
     Op_o,
     Branch_o,
-    Predict_o
+    Predict_o,
+    PC_o
 );
 
     input clk_i;
@@ -44,6 +46,7 @@ module IDEXRegisters
     input[31:0] Op_i;
     input Branch_i;
     input Predict_i; //branch predictor result
+    input[31:0] PC_i;
 
     output[2:0] ALUOp_o;
     output ALUSrc_o;
@@ -57,6 +60,7 @@ module IDEXRegisters
     output[31:0] Op_o;
     output Branch_o;
     output Predict_o;
+    output[31:0] PC_o;
 
     reg ALUSrc_reg;
     reg RegWrite_reg;
@@ -70,6 +74,7 @@ module IDEXRegisters
     reg[31:0] Imm_reg;
     reg Branch_reg;
     reg Predict_reg;
+    reg[31:0] PC_reg;
 
     assign ALUSrc_o = ALUSrc_reg;
     assign RegWrite_o = RegWrite_reg;
@@ -83,6 +88,7 @@ module IDEXRegisters
     assign Op_o = Op_reg;
     assign Branch_o = Branch_reg;
     assign Predict_o = Predict_reg;
+    assign PC_o = PC_reg;
 
     always@(posedge clk_i or posedge rst_i) begin
         if (rst_i) begin
@@ -98,6 +104,7 @@ module IDEXRegisters
             Op_reg <= 32'b0;
             Branch_reg <= 1'b0;
             Predict_reg <= 1'b0;
+            PC_reg <= 32'b0;
         end
         else if (Flush_i) begin
             ALUSrc_reg <= 1'b0;
@@ -112,6 +119,7 @@ module IDEXRegisters
             Op_reg <= 32'b0;
             Branch_reg <= 1'b0;
             Predict_reg <= 1'b0;
+            PC_reg <= 32'b0;
         end
         else begin
             ALUSrc_reg <= ALUSrc_i;
@@ -126,6 +134,7 @@ module IDEXRegisters
             Op_reg <= Op_i;
             Branch_reg <= Branch_i;
             predict_reg <= Predict_i;
+            PC_reg <= PC_i;
         end
     end
 
